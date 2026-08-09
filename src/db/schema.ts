@@ -38,6 +38,7 @@ export const savedSearches = pgTable("saved_searches", {
   maxPriceCents: integer("max_price_cents"),
   active: boolean("active").notNull().default(true),
   lastPolledAt: timestamp("last_polled_at", { withTimezone: true }),
+  lastError: text("last_error"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

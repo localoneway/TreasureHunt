@@ -140,6 +140,9 @@ export default async function WatchlistPage() {
                     : "Never polled"}{" "}
                   · {search.active ? "active" : "paused"}
                 </p>
+                {search.lastError && (
+                  <p className="text-xs text-[#d03b3b] mt-1">⚠ {search.lastError}</p>
+                )}
               </div>
               <div className="flex gap-2 shrink-0">
                 <form action={runSavedSearchNow.bind(null, search.id)}>

@@ -22,7 +22,9 @@ export async function pollSavedSearch(searchId: number): Promise<PollResult> {
   if (!search) return emptyResult(searchId, "unknown", "not found");
 
   if (!isMarketplaceConfigured(search.marketplace)) {
-    return emptyResult(searchId, search.marketplace, `${search.marketplace} is not configured (missing API credentials)`);
+    const message = `${search.marketplace} is not configured (missing API credentials)`;
+    await db.update(savedSearches).set({ lastPolledAt: new Date(), lastError: message }).where(eq(savedSearches.id, searchId));
+    return emptyResult(searchId, search.marketplace, message);
   }
 
   let results: NormalizedListing[];
@@ -33,7 +35,9 @@ export async function pollSavedSearch(searchId: number): Promise<PollResult> {
       maxPriceCents: search.maxPriceCents,
     });
   } catch (err) {
-    return emptyResult(searchId, search.marketplace, err instanceof Error ? err.message : String(err));
+    const message = err instanceof Error ? err.message : String(err);
+    await db.update(savedSearches).set({ lastPolledAt: new Date(), lastError: message }).where(eq(savedSearches.id, searchId));
+    return emptyResult(searchId, search.marketplace, message);
   }
 
   let newCount = 0;
@@ -89,7 +93,7 @@ export async function pollSavedSearch(searchId: number): Promise<PollResult> {
     }
   }
 
-  await db.update(savedSearches).set({ lastPolledAt: new Date() }).where(eq(savedSearches.id, searchId));
+  await db.update(savedSearches).set({ lastPolledAt: new Date(), lastError: null }).where(eq(savedSearches.id, searchId));
 
   return { savedSearchId: searchId, marketplace: search.marketplace, newListings: newCount, updatedListings: updatedCount, newItems };
 }
