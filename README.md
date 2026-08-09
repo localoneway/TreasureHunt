@@ -56,6 +56,12 @@ r/Watchexchange search works out of the box (no credentials required).
    refresh all active saved searches. Vercel automatically sends
    `Authorization: Bearer $CRON_SECRET` on cron requests when `CRON_SECRET` is
    set, which the route checks.
+5. If a deployment's build log shows "Build output contains no functions or
+   static directory" and the commit it lists doesn't match the latest commit
+   on GitHub, that deployment ran against a stale/old commit — push any new
+   commit to the production branch (or trigger a new deployment from the
+   Deployments tab, not just "Redeploy" on the old one) to get a fresh build
+   of the current code.
 
 ## Data model
 
