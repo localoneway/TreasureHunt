@@ -9,7 +9,7 @@ price history for both, and get emailed when a new listing matches a saved searc
 - Next.js (App Router) + TypeScript + Tailwind CSS
 - Postgres via [Drizzle ORM](https://orm.drizzle.team/) (`postgres.js` driver — works
   against any Postgres, including [Neon](https://neon.tech)/Vercel Postgres in production)
-- eBay Browse API and r/Watchexchange (public JSON feed) for live listing search
+- eBay Browse API and Reddit's OAuth API (for r/Watchexchange) for live listing search
 - [Resend](https://resend.com/) for email alerts on new matches (optional)
 - No auth — single-user app
 
@@ -21,9 +21,9 @@ price history for both, and get emailed when a new listing matches a saved searc
 4. Run the dev server: `npm run dev`
 
 The app works without any of the optional integrations below — saved searches and
-the manual catalog both work regardless, but eBay search won't return live results
-until it's configured, and no alert emails go out until Resend is configured.
-r/Watchexchange search works out of the box (no credentials required).
+the manual catalog both work regardless, but search against a given marketplace
+won't return live results until that marketplace is configured, and no alert
+emails go out until Resend is configured.
 
 ## eBay API setup
 
@@ -32,6 +32,20 @@ r/Watchexchange search works out of the box (no credentials required).
 2. Set `EBAY_CLIENT_ID` and `EBAY_CLIENT_SECRET` in `.env` (or your Vercel project's
    environment variables). The app requests an OAuth application token itself —
    no further setup needed.
+
+## r/Watchexchange (Reddit) setup
+
+Reddit blocks unauthenticated requests from cloud/datacenter IPs (including
+Vercel's) — a real OAuth app token is required even for read-only public data,
+there's no credential-free option.
+
+1. Log into Reddit, go to https://www.reddit.com/prefs/apps.
+2. Click "create app" (bottom of the page), choose type **script**, give it any
+   name, and put anything (e.g. `http://localhost`) in the required redirect URI
+   field — it's unused for this flow.
+3. After creating it, the **client ID** is the string under the app name; the
+   **secret** is labeled "secret".
+4. Set `REDDIT_CLIENT_ID` and `REDDIT_CLIENT_SECRET` in `.env` / Vercel.
 
 ## Email alerts setup
 
@@ -50,8 +64,9 @@ r/Watchexchange search works out of the box (no credentials required).
 1. Provision a Postgres database (Vercel Postgres / Neon) and set `DATABASE_URL`.
 2. Run `npm run db:push` once (locally, pointed at the production `DATABASE_URL`,
    or via a one-off script) to create the tables.
-3. Set `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET`, `CRON_SECRET`, and (optionally)
-   the Resend alert variables as environment variables in the Vercel project.
+3. Set `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET`, `REDDIT_CLIENT_ID`,
+   `REDDIT_CLIENT_SECRET`, `CRON_SECRET`, and (optionally) the Resend alert
+   variables as environment variables in the Vercel project.
 4. `vercel.json` defines a cron job that hits `/api/cron/poll` once a day
    (13:00 UTC) to refresh all active saved searches. Vercel automatically
    sends `Authorization: Bearer $CRON_SECRET` on cron requests when
@@ -82,10 +97,11 @@ r/Watchexchange search works out of the box (no credentials required).
 ## Marketplaces
 
 - **eBay** — via the Browse API, requires credentials (see above).
-- **r/Watchexchange** — via Reddit's public JSON feed, no credentials needed.
-  Price is parsed from a `$1,234` pattern in the post title on a best-effort
-  basis; listings without a detectable price still show up, just without a
-  price value. `[WTB]` (want-to-buy) posts are filtered out.
+- **r/Watchexchange** — via Reddit's OAuth API, requires credentials (see above;
+  Reddit blocks unauthenticated/cloud-hosted requests, so there's no
+  credential-free path). Price is parsed from a `$1,234` pattern in the post
+  title on a best-effort basis; listings without a detectable price still show
+  up, just without a price value. `[WTB]` (want-to-buy) posts are filtered out.
 
 Add a new source by implementing `NormalizedListing`-returning search logic
 under `src/lib/marketplaces/`, then registering it in `src/lib/marketplaces/index.ts`.
