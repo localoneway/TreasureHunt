@@ -1,11 +1,53 @@
 import type { NormalizedListing, SearchParams } from "./types";
 
 const SUBREDDIT = "Watchexchange";
-const LISTING_URL = `https://www.reddit.com/r/${SUBREDDIT}/new.json`;
+const TOKEN_URL = "https://www.reddit.com/api/v1/access_token";
+const LISTING_URL = `https://oauth.reddit.com/r/${SUBREDDIT}/new`;
+const USER_AGENT = "TreasureHuntApp/1.0 (vintage watch tracker)";
 
-// r/Watchexchange has no API keys to configure — it's a public JSON feed.
+// Reddit's unauthenticated JSON endpoints block requests from cloud/datacenter IPs
+// (including Vercel's), regardless of User-Agent — so a real OAuth app token is
+// required even for read-only public data. Create a "script" app at
+// https://www.reddit.com/prefs/apps to get REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET.
 export function isRedditConfigured(): boolean {
-  return true;
+  return Boolean(process.env.REDDIT_CLIENT_ID && process.env.REDDIT_CLIENT_SECRET);
+}
+
+let cachedToken: { value: string; expiresAt: number } | null = null;
+
+async function getAppAccessToken(): Promise<string> {
+  if (cachedToken && cachedToken.expiresAt > Date.now() + 30_000) {
+    return cachedToken.value;
+  }
+
+  const clientId = process.env.REDDIT_CLIENT_ID;
+  const clientSecret = process.env.REDDIT_CLIENT_SECRET;
+  if (!clientId || !clientSecret) {
+    throw new Error("REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET are not configured");
+  }
+
+  const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
+  const res = await fetch(TOKEN_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${basicAuth}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+      "User-Agent": USER_AGENT,
+    },
+    body: new URLSearchParams({ grant_type: "client_credentials" }),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error(`Reddit token request failed: ${res.status} ${await res.text()}`);
+  }
+
+  const data = (await res.json()) as { access_token: string; expires_in: number };
+  cachedToken = {
+    value: data.access_token,
+    expiresAt: Date.now() + data.expires_in * 1000,
+  };
+  return cachedToken.value;
 }
 
 type RedditPost = {
@@ -29,11 +71,18 @@ function extractPriceCents(title: string): number | null {
 }
 
 export async function searchReddit(params: SearchParams): Promise<NormalizedListing[]> {
+  if (!isRedditConfigured()) return [];
+
+  const token = await getAppAccessToken();
+
   const url = new URL(LISTING_URL);
   url.searchParams.set("limit", String(params.limit ?? 100));
 
   const res = await fetch(url, {
-    headers: { "User-Agent": "TreasureHuntApp/1.0 (vintage watch tracker)" },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "User-Agent": USER_AGENT,
+    },
     cache: "no-store",
   });
 
