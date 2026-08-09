@@ -1,40 +1,44 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { listings, priceSnapshots, savedSearches } from "@/db/schema";
-import { isMarketplaceConfigured, searchMarketplace } from "@/lib/marketplaces";
+import { isMarketplaceConfigured, searchMarketplace, type NormalizedListing } from "@/lib/marketplaces";
+import { sendNewListingsAlert, type AlertItem } from "@/lib/email";
 
 export type PollResult = {
   savedSearchId: number;
   marketplace: string;
   newListings: number;
   updatedListings: number;
+  newItems: NormalizedListing[];
   error?: string;
 };
 
+function emptyResult(searchId: number, marketplace: string, error?: string): PollResult {
+  return { savedSearchId: searchId, marketplace, newListings: 0, updatedListings: 0, newItems: [], error };
+}
+
 export async function pollSavedSearch(searchId: number): Promise<PollResult> {
   const [search] = await db.select().from(savedSearches).where(eq(savedSearches.id, searchId));
-  if (!search) {
-    return { savedSearchId: searchId, marketplace: "unknown", newListings: 0, updatedListings: 0, error: "not found" };
-  }
+  if (!search) return emptyResult(searchId, "unknown", "not found");
 
   if (!isMarketplaceConfigured(search.marketplace)) {
-    return {
-      savedSearchId: searchId,
-      marketplace: search.marketplace,
-      newListings: 0,
-      updatedListings: 0,
-      error: `${search.marketplace} is not configured (missing API credentials)`,
-    };
+    return emptyResult(searchId, search.marketplace, `${search.marketplace} is not configured (missing API credentials)`);
   }
 
-  const results = await searchMarketplace(search.marketplace, {
-    keywords: search.keywords,
-    minPriceCents: search.minPriceCents,
-    maxPriceCents: search.maxPriceCents,
-  });
+  let results: NormalizedListing[];
+  try {
+    results = await searchMarketplace(search.marketplace, {
+      keywords: search.keywords,
+      minPriceCents: search.minPriceCents,
+      maxPriceCents: search.maxPriceCents,
+    });
+  } catch (err) {
+    return emptyResult(searchId, search.marketplace, err instanceof Error ? err.message : String(err));
+  }
 
   let newCount = 0;
   let updatedCount = 0;
+  const newItems: NormalizedListing[] = [];
 
   for (const item of results) {
     const [existing] = await db
@@ -62,6 +66,7 @@ export async function pollSavedSearch(searchId: number): Promise<PollResult> {
       }
     } else {
       newCount += 1;
+      newItems.push(item);
       const [inserted] = await db
         .insert(listings)
         .values({
@@ -86,7 +91,7 @@ export async function pollSavedSearch(searchId: number): Promise<PollResult> {
 
   await db.update(savedSearches).set({ lastPolledAt: new Date() }).where(eq(savedSearches.id, searchId));
 
-  return { savedSearchId: searchId, marketplace: search.marketplace, newListings: newCount, updatedListings: updatedCount };
+  return { savedSearchId: searchId, marketplace: search.marketplace, newListings: newCount, updatedListings: updatedCount, newItems };
 }
 
 export async function pollAllActiveSearches(): Promise<PollResult[]> {
@@ -95,5 +100,24 @@ export async function pollAllActiveSearches(): Promise<PollResult[]> {
   for (const s of active) {
     out.push(await pollSavedSearch(s.id));
   }
+
+  const alertItems: AlertItem[] = [];
+  for (const result of out) {
+    const search = active.find((s) => s.id === result.savedSearchId);
+    if (!search) continue;
+    for (const listing of result.newItems) {
+      alertItems.push({ searchName: search.name, listing });
+    }
+  }
+
+  if (alertItems.length > 0) {
+    try {
+      await sendNewListingsAlert(alertItems);
+    } catch (err) {
+      // Don't let an email failure mask successful polling results.
+      console.error("Failed to send new-listings alert email", err);
+    }
+  }
+
   return out;
 }

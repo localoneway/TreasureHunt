@@ -3,7 +3,7 @@ import { desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { catalogItems, listings, savedSearches } from "@/db/schema";
 import { formatCents } from "@/lib/money";
-import { isMarketplaceConfigured } from "@/lib/marketplaces";
+import { isMarketplaceConfigured, MARKETPLACES } from "@/lib/marketplaces";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +19,7 @@ export default async function DashboardPage() {
 
   const recentListings = await db.select().from(listings).orderBy(desc(listings.firstSeenAt)).limit(6);
 
-  const ebayReady = isMarketplaceConfigured("ebay");
+  const connectedMarketplaces = MARKETPLACES.filter((m) => isMarketplaceConfigured(m.id));
 
   return (
     <div className="space-y-8">
@@ -40,8 +40,10 @@ export default async function DashboardPage() {
           <p className="text-2xl font-semibold mt-1">{catalogCount}</p>
         </Link>
         <div className="border border-[#e1e0d9] dark:border-[#2c2c2a] rounded-lg p-4">
-          <p className="text-xs uppercase tracking-wide text-[#898781]">eBay API</p>
-          <p className="text-2xl font-semibold mt-1">{ebayReady ? "Connected" : "Not configured"}</p>
+          <p className="text-xs uppercase tracking-wide text-[#898781]">Marketplaces connected</p>
+          <p className="text-2xl font-semibold mt-1">
+            {connectedMarketplaces.length} / {MARKETPLACES.length}
+          </p>
         </div>
       </div>
 

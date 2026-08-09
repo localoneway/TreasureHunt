@@ -3,7 +3,7 @@ import { desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { listings, savedSearches } from "@/db/schema";
 import { formatCents } from "@/lib/money";
-import { isMarketplaceConfigured } from "@/lib/marketplaces";
+import { isMarketplaceConfigured, MARKETPLACES } from "@/lib/marketplaces";
 import {
   createSavedSearch,
   deleteSavedSearch,
@@ -28,19 +28,21 @@ export default async function WatchlistPage() {
     }),
   );
 
-  const ebayReady = isMarketplaceConfigured("ebay");
+  const marketplaceStatus = MARKETPLACES.map((m) => ({ ...m, ready: isMarketplaceConfigured(m.id) }));
+  const notReady = marketplaceStatus.filter((m) => !m.ready);
 
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-xl font-semibold">Watchlist</h1>
         <p className="text-sm text-[#52514e] dark:text-[#c3c2b7] mt-1">
-          Save a search and TreasureHunt will poll eBay for matching vintage watches.
+          Save a search and TreasureHunt will poll eBay or r/Watchexchange for matching vintage watches.
         </p>
-        {!ebayReady && (
+        {notReady.length > 0 && (
           <p className="mt-3 rounded border border-[#e1e0d9] dark:border-[#2c2c2a] bg-[#fcfcfb] dark:bg-[#1a1a19] px-3 py-2 text-sm text-[#898781]">
-            eBay API credentials are not configured yet. Set EBAY_CLIENT_ID and EBAY_CLIENT_SECRET
-            in your environment to enable live search — saved searches can still be created now.
+            {notReady.map((m) => m.label).join(", ")} {notReady.length === 1 ? "is" : "are"} not configured
+            yet. Set EBAY_CLIENT_ID and EBAY_CLIENT_SECRET in your environment to enable eBay search —
+            saved searches can still be created now.
           </p>
         )}
       </div>
@@ -69,6 +71,22 @@ export default async function WatchlistPage() {
             placeholder="e.g. seiko 6139 vintage chronograph"
             className="w-full rounded border border-[#e1e0d9] dark:border-[#2c2c2a] bg-transparent px-3 py-2 text-sm"
           />
+        </div>
+        <div className="sm:col-span-2">
+          <label className="block text-sm mb-1" htmlFor="marketplace">
+            Marketplace
+          </label>
+          <select
+            id="marketplace"
+            name="marketplace"
+            className="w-full rounded border border-[#e1e0d9] dark:border-[#2c2c2a] bg-transparent px-3 py-2 text-sm"
+          >
+            {MARKETPLACES.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.label}
+              </option>
+            ))}
+          </select>
         </div>
         <div>
           <label className="block text-sm mb-1" htmlFor="minPrice">
@@ -111,6 +129,7 @@ export default async function WatchlistPage() {
               <div>
                 <h2 className="font-medium">{search.name}</h2>
                 <p className="text-sm text-[#898781]">
+                  {MARKETPLACES.find((m) => m.id === search.marketplace)?.label ?? search.marketplace} ·
                   “{search.keywords}”
                   {search.minPriceCents != null && ` · min ${formatCents(search.minPriceCents)}`}
                   {search.maxPriceCents != null && ` · max ${formatCents(search.maxPriceCents)}`}

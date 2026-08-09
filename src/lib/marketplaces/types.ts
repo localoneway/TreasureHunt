@@ -1,4 +1,4 @@
-export type MarketplaceId = "ebay";
+export type MarketplaceId = "ebay" | "reddit";
 
 export type NormalizedListing = {
   marketplace: MarketplaceId;
