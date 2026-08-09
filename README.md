@@ -52,10 +52,15 @@ r/Watchexchange search works out of the box (no credentials required).
    or via a one-off script) to create the tables.
 3. Set `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET`, `CRON_SECRET`, and (optionally)
    the Resend alert variables as environment variables in the Vercel project.
-4. `vercel.json` defines a cron job that hits `/api/cron/poll` every 6 hours to
-   refresh all active saved searches. Vercel automatically sends
-   `Authorization: Bearer $CRON_SECRET` on cron requests when `CRON_SECRET` is
-   set, which the route checks.
+4. `vercel.json` defines a cron job that hits `/api/cron/poll` once a day
+   (13:00 UTC) to refresh all active saved searches. Vercel automatically
+   sends `Authorization: Bearer $CRON_SECRET` on cron requests when
+   `CRON_SECRET` is set, which the route checks. **Vercel's free Hobby plan
+   only allows daily cron jobs** — a more frequent schedule (e.g. every 6
+   hours) will block deployment entirely with a cron-validation error. If
+   you're on a Pro plan, feel free to tighten this back up; you can also
+   always hit `/api/cron/poll?secret=...` manually or from an external
+   scheduler for more frequent refreshes.
 5. If a deployment's build log shows "Build output contains no functions or
    static directory" and the commit it lists doesn't match the latest commit
    on GitHub, that deployment ran against a stale/old commit — push any new
