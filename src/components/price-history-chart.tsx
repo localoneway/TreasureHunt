@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { formatCents } from "@/lib/money";
 
-type Point = { capturedAt: string; priceCents: number };
+type Point = { capturedAt: string; priceCents: number; label?: string };
 
 const WIDTH = 640;
 const HEIGHT = 220;
@@ -12,7 +12,17 @@ const PAD_R = 16;
 const PAD_T = 16;
 const PAD_B = 28;
 
-export default function PriceHistoryChart({ points }: { points: Point[] }) {
+export default function PriceHistoryChart({
+  points,
+  variant = "line",
+  emptyMessage,
+}: {
+  points: Point[];
+  /** "scatter" drops the connecting line — use it when each point is a distinct
+   * item (comps) rather than one entity's price changing over time. */
+  variant?: "line" | "scatter";
+  emptyMessage?: string;
+}) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
 
   const sorted = useMemo(
@@ -22,7 +32,9 @@ export default function PriceHistoryChart({ points }: { points: Point[] }) {
 
   if (sorted.length === 0) {
     return (
-      <p className="text-sm text-[#898781]">No price history yet — check back after the next poll.</p>
+      <p className="text-sm text-[#898781]">
+        {emptyMessage ?? "No price history yet — check back after the next poll."}
+      </p>
     );
   }
 
@@ -72,7 +84,7 @@ export default function PriceHistoryChart({ points }: { points: Point[] }) {
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         className="w-full h-auto"
         role="img"
-        aria-label="Price history line chart"
+        aria-label={variant === "scatter" ? "Comparable listing prices over time" : "Price history line chart"}
         onMouseLeave={() => setHoverIdx(null)}
       >
         {gridYs.map((gy, i) => (
@@ -87,10 +99,18 @@ export default function PriceHistoryChart({ points }: { points: Point[] }) {
           );
         })}
 
-        <path d={linePath} fill="none" stroke="var(--series-1)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+        {variant === "line" && (
+          <path d={linePath} fill="none" stroke="var(--series-1)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+        )}
 
         {sorted.map((p, i) => (
-          <circle key={i} cx={x(new Date(p.capturedAt).getTime())} cy={y(p.priceCents)} r={3} fill="var(--series-1)" />
+          <circle
+            key={i}
+            cx={x(new Date(p.capturedAt).getTime())}
+            cy={y(p.priceCents)}
+            r={variant === "scatter" ? 4 : 3}
+            fill="var(--series-1)"
+          />
         ))}
 
         {sorted.map((p, i) => (
@@ -122,7 +142,7 @@ export default function PriceHistoryChart({ points }: { points: Point[] }) {
 
       {hovered && (
         <div
-          className="pointer-events-none absolute top-2 rounded border border-[#e1e0d9] dark:border-[#2c2c2a] bg-[#fcfcfb] dark:bg-[#1a1a19] px-2 py-1 text-xs shadow-sm"
+          className="pointer-events-none absolute top-2 max-w-[240px] rounded border border-[#e1e0d9] dark:border-[#2c2c2a] bg-[#fcfcfb] dark:bg-[#1a1a19] px-2 py-1 text-xs shadow-sm"
           style={{
             left: `${(x(new Date(hovered.capturedAt).getTime()) / WIDTH) * 100}%`,
             transform: "translateX(-50%)",
@@ -132,6 +152,7 @@ export default function PriceHistoryChart({ points }: { points: Point[] }) {
           <div className="text-[var(--text-secondary)]">
             {new Date(hovered.capturedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
           </div>
+          {hovered.label && <div className="text-[var(--text-secondary)] line-clamp-2 mt-0.5">{hovered.label}</div>}
         </div>
       )}
     </div>
