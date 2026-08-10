@@ -1,10 +1,11 @@
 import type { NormalizedListing } from "@/lib/marketplaces";
 import { formatCents } from "@/lib/money";
+import { getEnv } from "@/lib/env";
 
 const RESEND_URL = "https://api.resend.com/emails";
 
 export function isEmailAlertsConfigured(): boolean {
-  return Boolean(process.env.RESEND_API_KEY && process.env.ALERT_EMAIL_FROM && process.env.ALERT_EMAIL_TO);
+  return Boolean(getEnv("RESEND_API_KEY") && getEnv("ALERT_EMAIL_FROM") && getEnv("ALERT_EMAIL_TO"));
 }
 
 export type AlertItem = { searchName: string; listing: NormalizedListing };
@@ -45,12 +46,12 @@ export async function sendNewListingsAlert(items: AlertItem[]): Promise<void> {
   const res = await fetch(RESEND_URL, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      Authorization: `Bearer ${getEnv("RESEND_API_KEY")}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: process.env.ALERT_EMAIL_FROM,
-      to: process.env.ALERT_EMAIL_TO,
+      from: getEnv("ALERT_EMAIL_FROM"),
+      to: getEnv("ALERT_EMAIL_TO"),
       subject: `TreasureHunt: ${items.length} new watch listing${items.length === 1 ? "" : "s"}`,
       html,
     }),

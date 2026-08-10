@@ -1,6 +1,7 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema";
+import { getEnv } from "@/lib/env";
 
 type Db = ReturnType<typeof drizzle<typeof schema>>;
 
@@ -8,8 +9,7 @@ type Db = ReturnType<typeof drizzle<typeof schema>>;
 // DATABASE_URL (it may be POSTGRES_URL or DATABASE_URL_UNPOOLED depending on
 // how it was provisioned), so fall back across the common names.
 function getConnectionString(): string {
-  const connectionString =
-    process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.DATABASE_URL_UNPOOLED;
+  const connectionString = getEnv("DATABASE_URL") || getEnv("POSTGRES_URL") || getEnv("DATABASE_URL_UNPOOLED");
   if (!connectionString) {
     throw new Error("No database connection string found (checked DATABASE_URL, POSTGRES_URL, DATABASE_URL_UNPOOLED)");
   }

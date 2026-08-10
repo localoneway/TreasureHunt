@@ -1,4 +1,5 @@
 import type { NormalizedListing, SearchParams } from "./types";
+import { getEnv } from "@/lib/env";
 
 const SUBREDDIT = "Watchexchange";
 const TOKEN_URL = "https://www.reddit.com/api/v1/access_token";
@@ -10,7 +11,7 @@ const USER_AGENT = "TreasureHuntApp/1.0 (vintage watch tracker)";
 // required even for read-only public data. Create a "script" app at
 // https://www.reddit.com/prefs/apps to get REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET.
 export function isRedditConfigured(): boolean {
-  return Boolean(process.env.REDDIT_CLIENT_ID && process.env.REDDIT_CLIENT_SECRET);
+  return Boolean(getEnv("REDDIT_CLIENT_ID") && getEnv("REDDIT_CLIENT_SECRET"));
 }
 
 let cachedToken: { value: string; expiresAt: number } | null = null;
@@ -20,8 +21,8 @@ async function getAppAccessToken(): Promise<string> {
     return cachedToken.value;
   }
 
-  const clientId = process.env.REDDIT_CLIENT_ID;
-  const clientSecret = process.env.REDDIT_CLIENT_SECRET;
+  const clientId = getEnv("REDDIT_CLIENT_ID");
+  const clientSecret = getEnv("REDDIT_CLIENT_SECRET");
   if (!clientId || !clientSecret) {
     throw new Error("REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET are not configured");
   }
