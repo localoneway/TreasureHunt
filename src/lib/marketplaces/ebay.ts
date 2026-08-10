@@ -1,4 +1,5 @@
 import type { NormalizedListing, SearchParams } from "./types";
+import { getEnv } from "@/lib/env";
 
 const TOKEN_URL = "https://api.ebay.com/identity/v1/oauth2/token";
 const SEARCH_URL = "https://api.ebay.com/buy/browse/v1/item_summary/search";
@@ -7,7 +8,7 @@ const SCOPE = "https://api.ebay.com/oauth/api_scope";
 let cachedToken: { value: string; expiresAt: number } | null = null;
 
 export function isEbayConfigured(): boolean {
-  return Boolean(process.env.EBAY_CLIENT_ID && process.env.EBAY_CLIENT_SECRET);
+  return Boolean(getEnv("EBAY_CLIENT_ID") && getEnv("EBAY_CLIENT_SECRET"));
 }
 
 async function getAppAccessToken(): Promise<string> {
@@ -15,8 +16,8 @@ async function getAppAccessToken(): Promise<string> {
     return cachedToken.value;
   }
 
-  const clientId = process.env.EBAY_CLIENT_ID;
-  const clientSecret = process.env.EBAY_CLIENT_SECRET;
+  const clientId = getEnv("EBAY_CLIENT_ID");
+  const clientSecret = getEnv("EBAY_CLIENT_SECRET");
   if (!clientId || !clientSecret) {
     throw new Error("EBAY_CLIENT_ID / EBAY_CLIENT_SECRET are not configured");
   }
