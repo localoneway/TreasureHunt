@@ -166,17 +166,27 @@ export default async function WatchlistPage() {
             {items.length > 0 && (
               <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {items.map((listing) => (
-                  <li key={listing.id} className="border border-[#e1e0d9] dark:border-[#2c2c2a] rounded p-3">
+                  <li key={listing.id} className="border border-[#e1e0d9] dark:border-[#2c2c2a] rounded overflow-hidden">
                     <Link href={`/listings/${listing.id}`} className="block">
-                      <p className="text-sm font-medium line-clamp-2">{listing.title}</p>
-                      <p className="text-sm text-[#2a78d6] dark:text-[#3987e5] mt-1">
-                        {formatCents(listing.priceCents, listing.currency ?? "USD")}
-                      </p>
-                      {listing.isNew && (
-                        <span className="inline-block mt-1 text-xs rounded bg-[#0ca30c]/10 text-[#0ca30c] px-1.5 py-0.5">
-                          new
-                        </span>
+                      {listing.imageUrl && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={listing.imageUrl}
+                          alt=""
+                          className="w-full aspect-square object-cover bg-[#f2f2f2] dark:bg-[#1e1e1e]"
+                        />
                       )}
+                      <div className="p-3">
+                        <p className="text-sm font-medium line-clamp-2">{listing.title}</p>
+                        <p className="text-sm text-[#2a78d6] dark:text-[#3987e5] mt-1">
+                          {formatCents(listing.priceCents, listing.currency ?? "USD")}
+                        </p>
+                        {listing.isNew && (
+                          <span className="inline-block mt-1 text-xs rounded bg-[#0ca30c]/10 text-[#0ca30c] px-1.5 py-0.5">
+                            new
+                          </span>
+                        )}
+                      </div>
                     </Link>
                   </li>
                 ))}
