@@ -3,7 +3,7 @@ import { desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { listings, savedSearches } from "@/db/schema";
 import { formatCents } from "@/lib/money";
-import { isMarketplaceConfigured, MARKETPLACES } from "@/lib/marketplaces";
+import { isMarketplaceConfigured, MARKETPLACES, MANUAL_MARKETPLACES } from "@/lib/marketplaces";
 import {
   createSavedSearch,
   deleteSavedSearch,
@@ -37,6 +37,8 @@ export default async function WatchlistPage() {
         <h1 className="text-xl font-semibold">Watchlist</h1>
         <p className="text-sm text-[#52514e] dark:text-[#c3c2b7] mt-1">
           Save a search and TreasureHunt will poll eBay or r/Watchexchange for matching vintage watches.
+          Depop, Poshmark, and Gem don&apos;t have a public API to poll, so each saved search also links
+          out to a manual search on those sites with the same keywords.
         </p>
         {notReady.length > 0 && (
           <p className="mt-3 rounded border border-[#e1e0d9] dark:border-[#2c2c2a] bg-[#fcfcfb] dark:bg-[#1a1a19] px-3 py-2 text-sm text-[#898781]">
@@ -143,6 +145,22 @@ export default async function WatchlistPage() {
                 {search.lastError && (
                   <p className="text-xs text-[#d03b3b] mt-1">⚠ {search.lastError}</p>
                 )}
+                <p className="text-xs text-[#898781] mt-2">
+                  Also check manually:{" "}
+                  {MANUAL_MARKETPLACES.map((m, i) => (
+                    <span key={m.id}>
+                      {i > 0 && " · "}
+                      <a
+                        href={m.searchUrl(search.keywords)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#2a78d6] dark:text-[#3987e5] underline"
+                      >
+                        {m.label}
+                      </a>
+                    </span>
+                  ))}
+                </p>
               </div>
               <div className="flex gap-2 shrink-0">
                 <form action={runSavedSearchNow.bind(null, search.id)}>
