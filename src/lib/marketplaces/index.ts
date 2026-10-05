@@ -3,6 +3,10 @@ import { isRedditConfigured, searchReddit } from "./reddit";
 import type { NormalizedListing, SearchParams } from "./types";
 
 export type { NormalizedListing, SearchParams };
+export { MANUAL_MARKETPLACES } from "./manual";
+export type { ManualMarketplace, ManualMarketplaceId } from "./manual";
+export { PRICE_CHECK_SOURCES } from "./priceCheck";
+export type { PriceCheckSource, PriceCheckSourceId } from "./priceCheck";
 
 export const MARKETPLACES = [
   { id: "ebay", label: "eBay" },

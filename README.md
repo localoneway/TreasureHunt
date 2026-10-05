@@ -102,6 +102,32 @@ there's no credential-free option.
   credential-free path). Price is parsed from a `$1,234` pattern in the post
   title on a best-effort basis; listings without a detectable price still show
   up, just without a price value. `[WTB]` (want-to-buy) posts are filtered out.
+- **Depop, Poshmark, Gem** — none of these have a public API: Depop's search
+  endpoint sits behind Cloudflare bot protection, Poshmark only exposes an
+  undocumented internal endpoint, and Gem (gem.app) is itself a search
+  aggregator over other resale sites with no API of its own. So they aren't
+  polled or alerted on — each saved search on the Watchlist page instead shows
+  manual search links to those three sites, prefilled with the same keywords,
+  to check by hand. See `src/lib/marketplaces/manual.ts`.
 
-Add a new source by implementing `NormalizedListing`-returning search logic
-under `src/lib/marketplaces/`, then registering it in `src/lib/marketplaces/index.ts`.
+Add a new pollable source by implementing `NormalizedListing`-returning search
+logic under `src/lib/marketplaces/`, then registering it in
+`src/lib/marketplaces/index.ts`. For a source with no usable API, add a manual
+search-link entry to `MANUAL_MARKETPLACES` in `src/lib/marketplaces/manual.ts`
+instead.
+
+## Price check
+
+The **Price check** page (`/price-check`) looks up a free-text description —
+brand, reference number, dial/case variant, whatever — and shows:
+
+- A live asking-price range (low/median/high) from whichever of eBay and
+  r/Watchexchange are configured, since those are the only sources here with a
+  real search API. This is a snapshot of current listings, not sold-price
+  history — no source used by this app (including eBay) exposes that
+  publicly without restricted/limited-release API access.
+- Quick cross-check links to Chrono24, WatchCharts, Bob's Watches, and
+  European Watch Co. (the dealer that took over Crown & Caliber's inventory in
+  2024) for the same query — these have no API either, so they're link-outs
+  to each site's own search page rather than aggregated data. See
+  `src/lib/marketplaces/priceCheck.ts`.
