@@ -115,3 +115,19 @@ logic under `src/lib/marketplaces/`, then registering it in
 `src/lib/marketplaces/index.ts`. For a source with no usable API, add a manual
 search-link entry to `MANUAL_MARKETPLACES` in `src/lib/marketplaces/manual.ts`
 instead.
+
+## Price check
+
+The **Price check** page (`/price-check`) looks up a free-text description —
+brand, reference number, dial/case variant, whatever — and shows:
+
+- A live asking-price range (low/median/high) from whichever of eBay and
+  r/Watchexchange are configured, since those are the only sources here with a
+  real search API. This is a snapshot of current listings, not sold-price
+  history — no source used by this app (including eBay) exposes that
+  publicly without restricted/limited-release API access.
+- Quick cross-check links to Chrono24, WatchCharts, Bob's Watches, and
+  European Watch Co. (the dealer that took over Crown & Caliber's inventory in
+  2024) for the same query — these have no API either, so they're link-outs
+  to each site's own search page rather than aggregated data. See
+  `src/lib/marketplaces/priceCheck.ts`.

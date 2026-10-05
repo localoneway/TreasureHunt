@@ -4,6 +4,7 @@ const links = [
   { href: "/", label: "Dashboard" },
   { href: "/watchlist", label: "Watchlist" },
   { href: "/catalog", label: "Catalog" },
+  { href: "/price-check", label: "Price check" },
 ];
 
 export default function Nav() {
